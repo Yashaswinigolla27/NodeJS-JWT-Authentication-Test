@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.1/axios.min.js" integrity="sha512-emSwuKiMyYedRwflbZB2ghzX8Cw8fmNVgZ6yQNNXXagFzFOaQmbvQ1vmDkddHjm5AITcBIZfC7k4ShQSjgPAmQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
+</head>
+<body>
+    <div class="container-fluid">
+        <h1 class="row">Login</h1>
+
+        <main>
+            <div class="row">
+                <label for="username">Username</label>
+                <input type="text" name="username" id="username">
+            </div>
+            <div class="row">
+                <label for="password">password</label>
+                <input type="password" name="password" id="password">
+            </div>
+            <div>
+                <button onclick="login()">Login</button>
+                <button onclick="getDashboard()">Get Dashboard</button>
+                <button onclick="getSettings()">Get Settings</button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+
+        function isJwtTokenExpired(token) {
+            const currentTimestamp = Math.floor(Date.now() / 1000); 
+            const decodedToken = jwt_decode(token); 
+            return decodedToken.exp < currentTimestamp;
+        }
+
+        function reloadRootAddress() {
+            window.location.href = '/';
+        }
+
+        const token = response.data.token;
+        //const token = localStorage.getItem('jwt'); 
+        const checkTokenExpirationInterval = setInterval(() => {
+            if (isJwtTokenExpired(token)) {
+                clearInterval(checkTokenExpirationInterval); 
+                reloadRootAddress(); 
+            }
+            }, 60000); 
+
+
+        function navigateToRoute(route) {
+            const stateObj = { route }; 
+            const title = ''; 
+            const url = `/${route}`; 
+
+            history.pushState(stateObj, title, url);
+        }
+
+        function login() {
+            const data = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+            };
+            axios.post('/api/login', data)
+            .then(response => {
+                console.log(response);
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+                if (response && response.data && response.data.success) {
+                    const token = response.data.token;
+                    localStorage.setItem('jwt', token);
+                    getDashboard();
+                }
+            });
+        }
+
+        function getDashboard() {
+            const token = localStorage.getItem('jwt');
+            axios.get('/api/dashboard', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }).then (response => {
+                if (response && response.data && response.data.success) {
+                    document.querySelector('h1.row').innerHTML = 'Dashboard';
+                    document.querySelector('main').innerHTML = response.data.myContent;
+                    navigateToRoute('dashboard');
+                }
+            });
+        }
+
+        function getSettings() {
+            const token = localStorage.getItem('jwt');
+            axios.get('/api/settings', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }).then (response => {
+                if (response && response.data && response.data.success) {
+                    document.querySelector('h1.row').innerHTML = 'Settings';
+                    document.querySelector('main').innerHTML = response.data.myContent;
+                    navigateToRoute('settings');
+
+                }
+            })
+        }
+    </script>
+</body>
+</html>
